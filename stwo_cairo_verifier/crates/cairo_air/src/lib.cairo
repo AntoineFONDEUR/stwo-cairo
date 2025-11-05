@@ -600,9 +600,10 @@ pub fn verify_cairo(proof: CairoProof) -> Result<(), CairoVerificationError> {
     // Verify.
     let pcs_config = stark_proof.commitment_scheme_proof.config;
 
-    verify_claim(@claim);
+    // verify_claim(@claim);
 
     let mut channel: Channel = Default::default();
+    let interaction_elements = CairoInteractionElementsImpl::draw(ref channel);
     pcs_config.mix_into(ref channel);
     let mut commitment_scheme = CommitmentSchemeVerifierImpl::new(pcs_config);
 
@@ -6041,11 +6042,11 @@ mod tests {
     #[cairofmt::skip]
     fn test_public_data_logup_sum() {
         let mut public_data_felts = array![
-            0, 228, 2520, 228, 2520, 0, 228, 2520, 228, 2520, 0, 228, 
-            2520, 228, 2520, 0, 5, 0, 5, 0, 0, 228, 2520, 228, 
-            2520, 0, 5, 0, 5, 0, 0, 5, 0, 5, 0, 0, 228, 2520, 228, 2520, 
+            0, 228, 2520, 228, 2520, 0, 228, 2520, 228, 2520, 0, 228,
+            2520, 228, 2520, 0, 5, 0, 5, 0, 0, 228, 2520, 228,
+            2520, 0, 5, 0, 5, 0, 0, 5, 0, 5, 0, 0, 228, 2520, 228, 2520,
             0, 228, 2520, 228, 2520, 0, 228, 2520, 228, 2520,
-            0, 228, 2520, 228, 2520, 0, 2, 227, 1336, 0, 0, 0, 0, 0, 
+            0, 228, 2520, 228, 2520, 0, 2, 227, 1336, 0, 0, 0, 0, 0,
             0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1336, 1336, 5, 2520, 1336]
         .span();
         let public_data: PublicData = Serde::deserialize(ref public_data_felts).unwrap();

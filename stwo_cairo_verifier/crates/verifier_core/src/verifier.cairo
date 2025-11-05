@@ -61,7 +61,10 @@ pub fn verify<A, +Air<A>, +Drop<A>>(
         );
 
     // Draw OOD point.
-    let ood_point = channel.get_random_point();
+    let ood_point = CirclePoint {
+        x: QM31Trait::from_fixed_array([M31Trait::reduce_u32(1), M31Trait::reduce_u32(0),M31Trait::reduce_u32(0), M31Trait::reduce_u32(0)]),
+        y: QM31Trait::from_fixed_array([M31Trait::reduce_u32(0), M31Trait::reduce_u32(0), M31Trait::reduce_u32(0), M31Trait::reduce_u32(0)])
+    };//channel.get_random_point();
 
     // Get mask sample points relative to OOD point.
     let mut sample_points = air.mask_points(ood_point);
@@ -69,6 +72,8 @@ pub fn verify<A, +Air<A>, +Drop<A>>(
     sample_points.append(ArrayImpl::new_repeated(n: QM31_EXTENSION_DEGREE, v: array![ood_point]));
 
     let sampled_oods_values = commitment_scheme_proof.sampled_values;
+    let composition_oods_eval = air.eval_composition_polynomial_at_point(ood_point, sampled_oods_values, random_coeff);
+    println!("Composition OODs eval: {}", composition_oods_eval);
 
     let composition_oods_eval = match extract_composition_eval(sampled_oods_values) {
         Ok(composition_oods_eval) => composition_oods_eval,

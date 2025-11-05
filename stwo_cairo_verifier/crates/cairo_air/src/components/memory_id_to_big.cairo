@@ -329,3 +329,106 @@ pub impl SmallComponentImpl of CairoComponent<SmallComponent> {
         );
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::components::test_utils::{
+        build_dummy_mask_spans,
+        build_dummy_preprocessed_mask_values,
+        dummy_circle_point,
+        dummy_lookup_elements,
+    };
+    use core::num::traits::{One, Zero};
+
+    #[test]
+    #[cairofmt::skip]
+    fn test_memory_id_to_big_big_component_dummy_sum() {
+        let component = BigComponent {
+            log_n_rows: 4,
+            offset: 0,
+            claimed_sum: One::one(),
+            lookup_elements: dummy_lookup_elements::<29>(),
+            range_9_9_lookup_elements: dummy_lookup_elements::<2>(),
+        };
+        let point = dummy_circle_point();
+        let random_coeff = One::one();
+        let mut sum: QM31 = Zero::zero();
+
+        let mut preprocessed_column_set = Default::default();
+        let mut trace_mask_points = array![];
+        let mut interaction_trace_mask_points = array![];
+
+        component.mask_points(
+            ref preprocessed_column_set,
+            ref trace_mask_points,
+            ref interaction_trace_mask_points,
+            point,
+        );
+
+        let mut preprocessed_mask_values =
+            build_dummy_preprocessed_mask_values(ref preprocessed_column_set);
+        let (_trace_values_storage, mut trace_span_storage) =
+            build_dummy_mask_spans(@trace_mask_points);
+        let (_interaction_values_storage, mut interaction_span_storage) =
+            build_dummy_mask_spans(@interaction_trace_mask_points);
+        let mut trace_mask_values = trace_span_storage.span();
+        let mut interaction_mask_values = interaction_span_storage.span();
+
+        component.evaluate_constraints_at_point(
+            ref sum,
+            ref preprocessed_mask_values,
+            ref trace_mask_values,
+            ref interaction_mask_values,
+            random_coeff,
+            point,
+        );
+
+        println!("Dummy sum for memory_id_to_big_big_component: {}", sum);
+    }
+
+    #[test]
+    #[cairofmt::skip]
+    fn test_memory_id_to_big_small_component_dummy_sum() {
+        let component = SmallComponent {
+            log_n_rows: 4,
+            claimed_sum: One::one(),
+            lookup_elements: dummy_lookup_elements::<29>(),
+            range_9_9_lookup_elements: dummy_lookup_elements::<2>(),
+        };
+        let point = dummy_circle_point();
+        let random_coeff = One::one();
+        let mut sum: QM31 = Zero::zero();
+
+        let mut preprocessed_column_set = Default::default();
+        let mut trace_mask_points = array![];
+        let mut interaction_trace_mask_points = array![];
+
+        component.mask_points(
+            ref preprocessed_column_set,
+            ref trace_mask_points,
+            ref interaction_trace_mask_points,
+            point,
+        );
+
+        let mut preprocessed_mask_values =
+            build_dummy_preprocessed_mask_values(ref preprocessed_column_set);
+        let (_trace_values_storage, mut trace_span_storage) =
+            build_dummy_mask_spans(@trace_mask_points);
+        let (_interaction_values_storage, mut interaction_span_storage) =
+            build_dummy_mask_spans(@interaction_trace_mask_points);
+        let mut trace_mask_values = trace_span_storage.span();
+        let mut interaction_mask_values = interaction_span_storage.span();
+
+        component.evaluate_constraints_at_point(
+            ref sum,
+            ref preprocessed_mask_values,
+            ref trace_mask_values,
+            ref interaction_mask_values,
+            random_coeff,
+            point,
+        );
+
+        println!("Dummy sum for memory_id_to_big_small_component: {}", sum);
+    }
+}

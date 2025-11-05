@@ -505,7 +505,7 @@ pub impl ComponentImpl of CairoComponent<Component> {
         *(self.claim.log_size) + 1
     }
 
-    fn evaluate_constraints_at_point(
+fn evaluate_constraints_at_point(
         self: @Component,
         ref sum: QM31,
         ref preprocessed_mask_values: PreprocessedMaskValues,
@@ -3348,4 +3348,72 @@ fn lookup_constraints(
         - qm31_const::<1, 0, 0, 0>())
         * domain_vanishing_eval_inv;
     sum = sum * random_coeff + constraint_quotient;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::components::test_utils::{
+        build_dummy_mask_spans,
+        build_dummy_preprocessed_mask_values,
+        dummy_circle_point,
+        dummy_lookup_elements,
+    };
+    use core::num::traits::{One, Zero};
+
+    #[test]
+    #[cairofmt::skip]
+    fn test_poseidon_builtin_dummy_sum() {
+        let claim = Claim { log_size: 4, poseidon_builtin_segment_start: 3 };
+        let interaction_claim = InteractionClaim { claimed_sum: One::one() };
+        let component = Component {
+            claim,
+            interaction_claim,
+            memory_address_to_id_lookup_elements: dummy_lookup_elements::<2>(),
+            memory_id_to_big_lookup_elements: dummy_lookup_elements::<29>(),
+            poseidon_full_round_chain_lookup_elements: dummy_lookup_elements::<32>(),
+            range_check_felt_252_width_27_lookup_elements: dummy_lookup_elements::<10>(),
+            cube_252_lookup_elements: dummy_lookup_elements::<20>(),
+            range_check_3_3_3_3_3_lookup_elements: dummy_lookup_elements::<5>(),
+            range_check_4_4_4_4_lookup_elements: dummy_lookup_elements::<4>(),
+            range_check_4_4_lookup_elements: dummy_lookup_elements::<2>(),
+            poseidon_3_partial_rounds_chain_lookup_elements: dummy_lookup_elements::<42>(),
+        };
+        let point = dummy_circle_point();
+        let random_coeff = One::one();
+        let mut sum: QM31 = Zero::zero();
+
+        let mut preprocessed_column_set = Default::default();
+        let mut trace_mask_points = array![];
+        let mut interaction_trace_mask_points = array![];
+
+        component.mask_points(
+            ref preprocessed_column_set,
+            ref trace_mask_points,
+            ref interaction_trace_mask_points,
+            point,
+        );
+
+        let mut preprocessed_mask_values =
+            build_dummy_preprocessed_mask_values(ref preprocessed_column_set);
+        let (_trace_values_storage, mut trace_span_storage) =
+            build_dummy_mask_spans(@trace_mask_points);
+        let (
+            _interaction_values_storage,
+            mut interaction_span_storage,
+        ) = build_dummy_mask_spans(@interaction_trace_mask_points);
+        let mut trace_mask_values = trace_span_storage.span();
+        let mut interaction_mask_values = interaction_span_storage.span();
+
+        component.evaluate_constraints_at_point(
+            ref sum,
+            ref preprocessed_mask_values,
+            ref trace_mask_values,
+            ref interaction_mask_values,
+            random_coeff,
+            point,
+        );
+
+        println!("Dummy sum for poseidon_builtin: {}", sum);
+    }
 }

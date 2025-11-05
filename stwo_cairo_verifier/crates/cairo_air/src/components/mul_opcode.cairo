@@ -1150,6 +1150,7 @@ fn lookup_constraints(
 
     core::internal::revoke_ap_tracking();
 
+    println!("sum before: {}", sum);
     let constraint_quotient = (((QM31Impl::from_partial_evals(
         [trace_2_col0, trace_2_col1, trace_2_col2, trace_2_col3],
     ))
@@ -1159,6 +1160,7 @@ fn lookup_constraints(
         - memory_address_to_id_sum_1)
         * domain_vanishing_eval_inv;
     sum = sum * random_coeff + constraint_quotient;
+    println!("sum after: {}", sum);
 
     let constraint_quotient = (((QM31Impl::from_partial_evals(
         [trace_2_col4, trace_2_col5, trace_2_col6, trace_2_col7],
@@ -1387,4 +1389,70 @@ fn lookup_constraints(
         + enabler)
         * domain_vanishing_eval_inv;
     sum = sum * random_coeff + constraint_quotient;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::components::test_utils::{
+        build_dummy_mask_spans,
+        build_dummy_preprocessed_mask_values,
+        dummy_circle_point,
+        dummy_lookup_elements,
+    };
+    use core::num::traits::{One, Zero};
+
+    #[test]
+    #[cairofmt::skip]
+    fn test_mul_opcode_dummy_sum() {
+        let claim = Claim {
+            log_size: 3,
+        };
+        let interaction_claim = InteractionClaim {
+            claimed_sum: One::one(),
+        };
+        let component = Component {
+            claim,
+            interaction_claim,
+            verify_instruction_lookup_elements: dummy_lookup_elements::<7>(),
+            memory_address_to_id_lookup_elements: dummy_lookup_elements::<2>(),
+            memory_id_to_big_lookup_elements: dummy_lookup_elements::<29>(),
+            range_check_19_lookup_elements: dummy_lookup_elements::<1>(),
+            opcodes_lookup_elements: dummy_lookup_elements::<3>(),
+        };
+        let point = dummy_circle_point();
+        let random_coeff = One::one();
+        let mut sum: QM31 = Zero::zero();
+
+        let mut preprocessed_column_set = Default::default();
+        let mut trace_mask_points = array![];
+        let mut interaction_trace_mask_points = array![];
+
+        component.mask_points(
+            ref preprocessed_column_set,
+            ref trace_mask_points,
+            ref interaction_trace_mask_points,
+            point,
+        );
+
+        let mut preprocessed_mask_values =
+            build_dummy_preprocessed_mask_values(ref preprocessed_column_set);
+        let (_trace_values_storage, mut trace_span_storage) =
+            build_dummy_mask_spans(@trace_mask_points);
+        let (_interaction_values_storage, mut interaction_span_storage) =
+            build_dummy_mask_spans(@interaction_trace_mask_points);
+        let mut trace_mask_values = trace_span_storage.span();
+        let mut interaction_mask_values = interaction_span_storage.span();
+
+        component.evaluate_constraints_at_point(
+            ref sum,
+            ref preprocessed_mask_values,
+            ref trace_mask_values,
+            ref interaction_mask_values,
+            random_coeff,
+            point,
+        );
+
+        println!("Dummy sum for mul_opcode: {}", sum);
+    }
 }

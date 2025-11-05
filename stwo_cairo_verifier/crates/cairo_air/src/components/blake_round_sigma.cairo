@@ -181,15 +181,81 @@ fn lookup_constraints(
 
     core::internal::revoke_ap_tracking();
 
-    let constraint_quotient = (((QM31Impl::from_partial_evals(
-        [trace_2_col0, trace_2_col1, trace_2_col2, trace_2_col3],
-    )
-        - QM31Impl::from_partial_evals(
-            [trace_2_col0_neg1, trace_2_col1_neg1, trace_2_col2_neg1, trace_2_col3_neg1],
-        )
-        + (claimed_sum * (column_size.inverse().into())))
-        * blake_round_sigma_sum_0)
-        + enabler)
-        * domain_vanishing_eval_inv;
+    let trace_current =
+        QM31Impl::from_partial_evals([trace_2_col0, trace_2_col1, trace_2_col2, trace_2_col3]);
+    let trace_previous = QM31Impl::from_partial_evals([
+        trace_2_col0_neg1,
+        trace_2_col1_neg1,
+        trace_2_col2_neg1,
+        trace_2_col3_neg1,
+    ]);
+    let column_size_inv_qm31: QM31 = column_size.inverse().into();
+    let claimed_adjustment = claimed_sum * column_size_inv_qm31;
+    let trace_diff = trace_current - trace_previous;
+    let g0_inner = trace_diff + claimed_adjustment;
+    let g0_lookup_product = g0_inner * blake_round_sigma_sum_0;
+    let g0_total = g0_lookup_product + enabler;
+    let constraint_quotient = g0_total * domain_vanishing_eval_inv;
+
     sum = sum * random_coeff + constraint_quotient;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::components::test_utils::{
+        build_dummy_mask_spans,
+        build_dummy_preprocessed_mask_values,
+        dummy_circle_point,
+        dummy_lookup_elements,
+    };
+    use core::num::traits::{One, Zero};
+
+    #[test]
+    #[cairofmt::skip]
+    fn test_blake_round_sigma_dummy_sum() {
+        let claim = Claim {};
+        let interaction_claim = InteractionClaim {
+            claimed_sum: One::one(),
+        };
+        let component = Component {
+            claim,
+            interaction_claim,
+            blake_round_sigma_lookup_elements: dummy_lookup_elements::<17>(),
+        };
+        let point = dummy_circle_point();
+        let random_coeff = One::one();
+        let mut sum: QM31 = Zero::zero();
+
+        let mut preprocessed_column_set = Default::default();
+        let mut trace_mask_points = array![];
+        let mut interaction_trace_mask_points = array![];
+
+        component.mask_points(
+            ref preprocessed_column_set,
+            ref trace_mask_points,
+            ref interaction_trace_mask_points,
+            point,
+        );
+
+        let mut preprocessed_mask_values =
+            build_dummy_preprocessed_mask_values(ref preprocessed_column_set);
+        let (_trace_values_storage, mut trace_span_storage) =
+            build_dummy_mask_spans(@trace_mask_points);
+        let (_interaction_values_storage, mut interaction_span_storage) =
+            build_dummy_mask_spans(@interaction_trace_mask_points);
+        let mut trace_mask_values = trace_span_storage.span();
+        let mut interaction_mask_values = interaction_span_storage.span();
+
+        component.evaluate_constraints_at_point(
+            ref sum,
+            ref preprocessed_mask_values,
+            ref trace_mask_values,
+            ref interaction_mask_values,
+            random_coeff,
+            point,
+        );
+
+        println!("Dummy sum for blake_round_sigma: {}", sum);
+    }
 }

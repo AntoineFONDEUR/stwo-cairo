@@ -212,10 +212,10 @@ fn tree_take_n<T, +Clone<T>, +Drop<T>>(
 
 fn fri_answers_for_log_size(
     log_size: u32,
-    samples_per_column: Array<@Array<PointSample>>,
+    samples_per_column: Array<@Array<PointSample>>, //OOD samples (point and eval) for each column of size `log_size`
     random_coeff: QM31,
-    mut query_positions: Span<usize>,
-    ref queried_values: TreeArray<Span<M31>>,
+    mut query_positions: Span<usize>, // Query positions for FRI
+    ref queried_values: TreeArray<Span<M31>>, // Queried values for FRI
     n_columns: TreeArray<usize>,
 ) -> Result<Span<QM31>, VerificationError> {
     let sample_batches = ColumnSampleBatchImpl::group_by_point(samples_per_column);

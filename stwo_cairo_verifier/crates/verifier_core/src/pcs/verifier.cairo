@@ -84,9 +84,9 @@ pub impl CommitmentSchemeVerifierImpl of CommitmentSchemeVerifierTrait {
 
         let mut flattened_sampled_values = array![];
 
-        for sampled_values in sampled_values {
-            for column_sampled_values in *sampled_values {
-                for sampled_value in *column_sampled_values {
+        for sampled_values in sampled_values { // Go through each tree
+            for column_sampled_values in *sampled_values { // Go through each column
+                for sampled_value in *column_sampled_values { // Go through each sample (mostly one element but two for lst columns of interaction)
                     flattened_sampled_values.append(*sampled_value);
                 };
             };
@@ -98,6 +98,7 @@ pub impl CommitmentSchemeVerifierImpl of CommitmentSchemeVerifierTrait {
         let column_log_sizes = self.column_log_sizes();
         let fri_config = self.config.fri_config;
         let log_blowup_factor = fri_config.log_blowup_factor;
+        // column_log_bounds is an array of log sizes of each column in descending order
         let column_log_bounds = get_column_log_bounds(@column_log_sizes, log_blowup_factor).span();
 
         // FRI commitment phase on OODS quotients.

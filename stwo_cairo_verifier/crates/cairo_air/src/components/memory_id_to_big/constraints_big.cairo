@@ -1122,4 +1122,3 @@ pub fn intermediate2(
         + (RangeCheck_9_9_alpha1) * (trace_1_column_5_offset_0)
         - (RangeCheck_9_9_z)
 }
-

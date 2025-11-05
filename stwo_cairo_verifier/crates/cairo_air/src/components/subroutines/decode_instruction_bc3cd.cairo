@@ -72,7 +72,14 @@ pub fn decode_instruction_bc3cd_evaluate(
     verify_instruction_sum_0 = verify_instruction_lookup_elements
         .combine_qm31(
             [
-                decode_instruction_bc3cd_input_pc, offset0_col0, offset1_col1, offset2_col2,
+                decode_instruction_bc3cd_input_pc,
+
+                offset0_col0,
+
+                offset1_col1,
+
+                offset2_col2,
+
                 ((((((dst_base_fp_col3 * qm31_const::<8, 0, 0, 0>())
                     + (op0_base_fp_col4 * qm31_const::<16, 0, 0, 0>()))
                     + (op1_imm_col5 * qm31_const::<32, 0, 0, 0>()))
@@ -80,8 +87,10 @@ pub fn decode_instruction_bc3cd_evaluate(
                     + (((qm31_const::<1, 0, 0, 0>() - op1_imm_col5) - op1_base_fp_col6)
                         * qm31_const::<128, 0, 0, 0>()))
                     + qm31_const::<256, 0, 0, 0>()),
+
                 ((ap_update_add_1_col7 * qm31_const::<32, 0, 0, 0>())
                     + qm31_const::<256, 0, 0, 0>()),
+
                 qm31_const::<0, 0, 0, 0>(),
             ],
         );

@@ -59,6 +59,9 @@ pub impl FriVerifierImpl of FriVerifierTrait {
     ///
     /// `column_log_bounds` should be the committed circle polynomial log
     /// degree bounds in descending order.
+    ///
+    /// NOTE: This builds the domains and bounds of the FRI layers. Mixes each layer's commitments to the channel.
+    ///       Verifies that the last layer is a constant.
     fn commit(
         ref channel: Channel, config: FriConfig, proof: FriProof, column_log_bounds: Span<u32>,
     ) -> Result<FriVerifier, FriVerificationError> {

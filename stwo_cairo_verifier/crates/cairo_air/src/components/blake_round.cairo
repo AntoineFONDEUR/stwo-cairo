@@ -2495,3 +2495,70 @@ fn lookup_constraints(
         * domain_vanishing_eval_inv;
     sum = sum * random_coeff + constraint_quotient;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::components::test_utils::{
+        build_dummy_mask_spans,
+        build_dummy_preprocessed_mask_values,
+        dummy_circle_point,
+        dummy_lookup_elements,
+    };
+    use core::num::traits::{One, Zero};
+
+    #[test]
+    #[cairofmt::skip]
+    fn test_blake_round_dummy_sum() {
+        let claim = Claim {
+            log_size: 4,
+        };
+        let interaction_claim = InteractionClaim {
+            claimed_sum: One::one(),
+        };
+        let component = Component {
+            claim,
+            interaction_claim,
+            blake_round_sigma_lookup_elements: dummy_lookup_elements::<17>(),
+            range_check_7_2_5_lookup_elements: dummy_lookup_elements::<3>(),
+            memory_address_to_id_lookup_elements: dummy_lookup_elements::<2>(),
+            memory_id_to_big_lookup_elements: dummy_lookup_elements::<29>(),
+            blake_g_lookup_elements: dummy_lookup_elements::<20>(),
+            blake_round_lookup_elements: dummy_lookup_elements::<35>(),
+        };
+        let point = dummy_circle_point();
+        let random_coeff = One::one();
+        let mut sum: QM31 = Zero::zero();
+
+        let mut preprocessed_column_set = Default::default();
+        let mut trace_mask_points = array![];
+        let mut interaction_trace_mask_points = array![];
+
+        component.mask_points(
+            ref preprocessed_column_set,
+            ref trace_mask_points,
+            ref interaction_trace_mask_points,
+            point,
+        );
+
+        let mut preprocessed_mask_values =
+            build_dummy_preprocessed_mask_values(ref preprocessed_column_set);
+        let (_trace_values_storage, mut trace_span_storage) =
+            build_dummy_mask_spans(@trace_mask_points);
+        let (_interaction_values_storage, mut interaction_span_storage) =
+            build_dummy_mask_spans(@interaction_trace_mask_points);
+        let mut trace_mask_values = trace_span_storage.span();
+        let mut interaction_mask_values = interaction_span_storage.span();
+
+        component.evaluate_constraints_at_point(
+            ref sum,
+            ref preprocessed_mask_values,
+            ref trace_mask_values,
+            ref interaction_mask_values,
+            random_coeff,
+            point,
+        );
+
+        println!("Dummy sum for blake_round: {}", sum);
+    }
+}
