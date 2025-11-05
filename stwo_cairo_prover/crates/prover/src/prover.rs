@@ -107,6 +107,14 @@ where
 
     let components = component_builder.provers();
 
+    tracing::info!(
+        "Number of columns per trace: {:?}",
+        commitment_scheme
+            .trees
+            .as_ref()
+            .map(|tree| tree.evaluations.len())
+    );
+
     // Prove stark.
     let span = span!(Level::INFO, "Prove STARKs").entered();
     let proof = prove::<SimdBackend, _>(&components, channel, commitment_scheme)?;
@@ -178,7 +186,13 @@ pub fn default_prod_prover_parameters() -> ProverParameters {
 #[cfg(test)]
 pub mod tests {
     use cairo_air::preprocessed::testing_preprocessed_tree;
+    use std::path::PathBuf;
     use stwo_cairo_adapter::test_utils::{get_test_program, run_program_and_adapter};
+    use stwo_prover::core::fri::FriConfig;
+    use stwo_prover::core::pcs::PcsConfig;
+    use stwo_prover::core::vcs::blake2_merkle::{Blake2sMerkleChannel, Blake2sMerkleHasher};
+
+    use cairo_air::{verifier::verify_cairo, PreProcessedTraceVariant};
 
     use crate::debug_tools::assert_constraints::assert_cairo_constraints;
     #[test]
@@ -187,6 +201,30 @@ pub mod tests {
         let input = run_program_and_adapter(&compiled_program);
         let pp_tree = testing_preprocessed_tree(20);
         assert_cairo_constraints(input, pp_tree);
+    }
+
+    #[test]
+    fn test_verify_cairo_from_file() {
+        use cairo_air::CairoProof;
+
+        // Read the proof file (JSON format)
+        let proof_path = PathBuf::from(
+            "/Users/antoine/Documents/stwo-gnark-verifier/test_data/all_components_proof.json",
+        );
+        let proof_str = std::fs::read_to_string(&proof_path).expect("Failed to read proof file");
+
+        // Deserialize the proof from JSON
+        let cairo_proof: CairoProof<Blake2sMerkleHasher> =
+            sonic_rs::from_str(&proof_str).expect("Failed to deserialize proof");
+
+        let pcs_config = PcsConfig {
+            pow_bits: 26,
+            fri_config: FriConfig::new(0, 1, 70),
+        };
+
+        // Verify the proof
+        let preprocessed_trace = PreProcessedTraceVariant::Canonical;
+        verify_cairo::<Blake2sMerkleChannel>(cairo_proof, pcs_config, preprocessed_trace).unwrap();
     }
 
     #[cfg(test)]
@@ -234,6 +272,7 @@ pub mod tests {
     #[cfg(feature = "slow-tests")]
     pub mod slow_tests {
 
+        use std::fs;
         use std::io::Write;
         use std::process::Command;
 
@@ -262,7 +301,7 @@ pub mod tests {
         }
 
         #[test]
-        fn test_prove_verify_all_opcode_components() {
+        fn test_prove_verify_serialize_all_opcode_components() {
             let compiled_program = get_test_program("test_prove_verify_all_opcode_components");
             let input = run_program_and_adapter(&compiled_program);
             for (opcode, n_instances) in &input.state_transitions.casm_states_by_opcode.counts() {
@@ -272,19 +311,20 @@ pub mod tests {
                     opcode
                 );
             }
-            let preprocessed_trace = PreProcessedTraceVariant::CanonicalWithoutPedersen;
-            let cairo_proof = prove_cairo::<Blake2sMerkleChannel>(
-                input,
-                PcsConfig::default(),
-                preprocessed_trace,
-            )
-            .unwrap();
-            verify_cairo::<Blake2sMerkleChannel>(
-                cairo_proof,
-                PcsConfig::default(),
-                preprocessed_trace,
-            )
-            .unwrap();
+            let preprocessed_trace = PreProcessedTraceVariant::Canonical;
+            let config = PcsConfig {
+                pow_bits: 26,
+                fri_config: FriConfig::new(0, 1, 70),
+            };
+            let cairo_proof =
+                prove_cairo::<Blake2sMerkleChannel>(input, config, preprocessed_trace).unwrap();
+            let proof_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../../test_data/test_prove_verify_all_opcode_components");
+            fs::create_dir_all(&proof_dir).unwrap();
+            let proof_path = proof_dir.join("proof_test.json");
+            let serialized_proof = sonic_rs::to_string_pretty(&cairo_proof).unwrap();
+            fs::write(&proof_path, serialized_proof).unwrap();
+            verify_cairo::<Blake2sMerkleChannel>(cairo_proof, config, preprocessed_trace).unwrap();
         }
 
         #[test]
