@@ -314,14 +314,14 @@ pub mod tests {
             let preprocessed_trace = PreProcessedTraceVariant::Canonical;
             let config = PcsConfig {
                 pow_bits: 26,
-                fri_config: FriConfig::new(0, 1, 70),
+                fri_config: FriConfig::new(0, 1, 10),
             };
             let cairo_proof =
                 prove_cairo::<Blake2sMerkleChannel>(input, config, preprocessed_trace).unwrap();
             let proof_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .join("../../test_data/test_prove_verify_all_opcode_components");
             fs::create_dir_all(&proof_dir).unwrap();
-            let proof_path = proof_dir.join("proof_test.json");
+            let proof_path = proof_dir.join("proof.json");
             let serialized_proof = sonic_rs::to_string_pretty(&cairo_proof).unwrap();
             fs::write(&proof_path, serialized_proof).unwrap();
             verify_cairo::<Blake2sMerkleChannel>(cairo_proof, config, preprocessed_trace).unwrap();
