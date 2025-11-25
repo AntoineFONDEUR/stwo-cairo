@@ -6,13 +6,14 @@ use serde::{Deserialize, Serialize};
 use stwo_cairo_adapter::ProverInput;
 use stwo_prover::core::backend::simd::SimdBackend;
 use stwo_prover::core::backend::BackendForChannel;
-use stwo_prover::core::channel::{Channel, MerkleChannel};
+use stwo_prover::core::channel::{Blake2sChannel, Channel, MerkleChannel};
 use stwo_prover::core::fields::qm31::SecureField;
 use stwo_prover::core::fri::FriConfig;
 use stwo_prover::core::pcs::{CommitmentSchemeProver, PcsConfig};
 use stwo_prover::core::poly::circle::{CanonicCoset, PolyOps};
 use stwo_prover::core::proof_of_work::GrindOps;
 use stwo_prover::core::prover::{prove, ProvingError};
+use stwo_prover::core::vcs::blake2_merkle::{Blake2sMerkleChannel, Blake2sMerkleHasher};
 use tracing::{event, span, Level};
 
 use crate::witness::cairo::CairoClaimGenerator;
@@ -24,9 +25,9 @@ pub fn prove_cairo<MC: MerkleChannel>(
     input: ProverInput,
     pcs_config: PcsConfig,
     preprocessed_trace: PreProcessedTraceVariant,
-) -> Result<CairoProof<MC::H>, ProvingError>
+) -> Result<CairoProof<Blake2sMerkleHasher>, ProvingError>
 where
-    SimdBackend: BackendForChannel<MC>,
+    SimdBackend: BackendForChannel<Blake2sMerkleChannel>,
 {
     let _span = span!(Level::INFO, "prove_cairo").entered();
     // Composition polynomial domain log size is LOG_MAX_ROWS + 1, double it
@@ -38,10 +39,11 @@ where
     );
 
     // Setup protocol.
-    let channel = &mut MC::C::default();
+    let channel = &mut Blake2sChannel::default();
     pcs_config.mix_into(channel);
+
     let mut commitment_scheme =
-        CommitmentSchemeProver::<SimdBackend, MC>::new(pcs_config, &twiddles);
+        CommitmentSchemeProver::<SimdBackend, Blake2sMerkleChannel>::new(pcs_config, &twiddles);
 
     // Preprocessed trace.
     let preprocessed_trace = preprocessed_trace.to_preprocessed_trace();
@@ -57,7 +59,7 @@ where
     let (claim, interaction_generator) = cairo_claim_generator.write_trace(&mut tree_builder);
     span.exit();
 
-    // claim.mix_into(channel);
+    claim.mix_into(channel);
     tree_builder.commit(channel);
 
     // Draw interaction elements.
@@ -190,7 +192,7 @@ pub mod tests {
     use stwo_cairo_adapter::test_utils::{get_test_program, run_program_and_adapter};
     use stwo_prover::core::fri::FriConfig;
     use stwo_prover::core::pcs::PcsConfig;
-    use stwo_prover::core::vcs::blake2_merkle::{Blake2sMerkleChannel, Blake2sMerkleHasher};
+    use stwo_prover::core::vcs::blake2_merkle::Blake2sMerkleHasher;
 
     use cairo_air::{verifier::verify_cairo, PreProcessedTraceVariant};
 
@@ -324,7 +326,7 @@ pub mod tests {
             let proof_path = proof_dir.join("proof_with_hints.json");
             let serialized_proof = sonic_rs::to_string_pretty(&cairo_proof).unwrap();
             fs::write(&proof_path, serialized_proof).unwrap();
-            verify_cairo::<Blake2sMerkleChannel>(cairo_proof, config, preprocessed_trace).unwrap();
+            verify_cairo(cairo_proof, config, preprocessed_trace).unwrap();
         }
 
         #[test]
@@ -389,12 +391,7 @@ pub mod tests {
                 preprocessed_trace,
             )
             .unwrap();
-            verify_cairo::<Blake2sMerkleChannel>(
-                cairo_proof,
-                PcsConfig::default(),
-                preprocessed_trace,
-            )
-            .unwrap();
+            verify_cairo(cairo_proof, PcsConfig::default(), preprocessed_trace).unwrap();
         }
 
         fn test_proof_stability(path: &str, n_proofs_to_compare: usize) {
@@ -463,12 +460,7 @@ pub mod tests {
                     preprocessed_trace,
                 )
                 .unwrap();
-                verify_cairo::<Blake2sMerkleChannel>(
-                    cairo_proof,
-                    PcsConfig::default(),
-                    preprocessed_trace,
-                )
-                .unwrap();
+                verify_cairo(cairo_proof, PcsConfig::default(), preprocessed_trace).unwrap();
             }
 
             #[test]
@@ -485,12 +477,7 @@ pub mod tests {
                     preprocessed_trace,
                 )
                 .unwrap();
-                verify_cairo::<Blake2sMerkleChannel>(
-                    cairo_proof,
-                    PcsConfig::default(),
-                    preprocessed_trace,
-                )
-                .unwrap();
+                verify_cairo(cairo_proof, PcsConfig::default(), preprocessed_trace).unwrap();
             }
 
             #[test]
