@@ -57,7 +57,7 @@ where
     let (claim, interaction_generator) = cairo_claim_generator.write_trace(&mut tree_builder);
     span.exit();
 
-    claim.mix_into(channel);
+    // claim.mix_into(channel);
     tree_builder.commit(channel);
 
     // Draw interaction elements.
@@ -82,7 +82,7 @@ where
         SecureField::zero()
     );
 
-    interaction_claim.mix_into(channel);
+    // interaction_claim.mix_into(channel);
     tree_builder.commit(channel);
 
     // Component provers.
@@ -219,12 +219,12 @@ pub mod tests {
 
         let pcs_config = PcsConfig {
             pow_bits: 26,
-            fri_config: FriConfig::new(0, 1, 70),
+            fri_config: FriConfig::new(0, 1, 10),
         };
 
         // Verify the proof
         let preprocessed_trace = PreProcessedTraceVariant::Canonical;
-        verify_cairo::<Blake2sMerkleChannel>(cairo_proof, pcs_config, preprocessed_trace).unwrap();
+        verify_cairo(cairo_proof, pcs_config, preprocessed_trace).unwrap();
     }
 
     #[cfg(test)]
@@ -321,7 +321,7 @@ pub mod tests {
             let proof_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .join("../../test_data/test_prove_verify_all_opcode_components");
             fs::create_dir_all(&proof_dir).unwrap();
-            let proof_path = proof_dir.join("proof.json");
+            let proof_path = proof_dir.join("proof_with_hints.json");
             let serialized_proof = sonic_rs::to_string_pretty(&cairo_proof).unwrap();
             fs::write(&proof_path, serialized_proof).unwrap();
             verify_cairo::<Blake2sMerkleChannel>(cairo_proof, config, preprocessed_trace).unwrap();

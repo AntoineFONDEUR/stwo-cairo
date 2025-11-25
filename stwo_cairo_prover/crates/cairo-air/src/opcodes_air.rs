@@ -5,7 +5,7 @@ use stwo_cairo_serialize::CairoSerialize;
 use stwo_prover::constraint_framework::TraceLocationAllocator;
 use stwo_prover::core::air::ComponentProver;
 use stwo_prover::core::backend::simd::SimdBackend;
-use stwo_prover::core::channel::Channel;
+use stwo_prover::core::channel::{Blake2sChannel, Channel};
 use stwo_prover::core::fields::qm31::{SecureField, QM31};
 use stwo_prover::core::pcs::TreeVec;
 
@@ -44,7 +44,7 @@ pub struct OpcodeClaim {
 }
 impl OpcodeClaim {
     /// For each opcode component vector, mixes the length and then the claims.
-    pub fn mix_into(&self, channel: &mut impl Channel) {
+    pub fn mix_into(&self, channel: &mut Blake2sChannel) {
         macro_rules! mix_component_vector {
             ($field:ident) => {
                 channel.mix_u64(self.$field.len() as u64);
@@ -182,7 +182,7 @@ pub struct OpcodeInteractionClaim {
     pub ret: Vec<ret_opcode::InteractionClaim>,
 }
 impl OpcodeInteractionClaim {
-    pub fn mix_into(&self, channel: &mut impl Channel) {
+    pub fn mix_into(&self, channel: &mut Blake2sChannel) {
         self.add.iter().for_each(|c| c.mix_into(channel));
         self.add_small.iter().for_each(|c| c.mix_into(channel));
         self.add_ap.iter().for_each(|c| c.mix_into(channel));

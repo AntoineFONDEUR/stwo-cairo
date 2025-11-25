@@ -9,7 +9,7 @@ use stwo_prover::constraint_framework::preprocessed_columns::PreProcessedColumnI
 use stwo_prover::constraint_framework::{Relation, TraceLocationAllocator};
 use stwo_prover::core::air::{Component, ComponentProver};
 use stwo_prover::core::backend::simd::SimdBackend;
-use stwo_prover::core::channel::Channel;
+use stwo_prover::core::channel::{Blake2sChannel, Channel};
 use stwo_prover::core::fields::m31::M31;
 use stwo_prover::core::fields::qm31::{SecureField, QM31};
 use stwo_prover::core::fields::FieldExpOps;
@@ -100,7 +100,7 @@ pub struct CairoClaim {
 }
 
 impl CairoClaim {
-    pub fn mix_into(&self, channel: &mut impl Channel) {
+    pub fn mix_into(&self, channel: &mut Blake2sChannel) {
         let Self {
             public_data,
             opcodes,
@@ -253,7 +253,7 @@ impl PublicData {
         inverted_values.iter().sum::<QM31>()
     }
 
-    pub fn mix_into(&self, channel: &mut impl Channel) {
+    pub fn mix_into(&self, channel: &mut Blake2sChannel) {
         let Self {
             public_memory,
             initial_state,
@@ -272,7 +272,7 @@ pub struct MemorySmallValue {
     pub value: u32,
 }
 impl MemorySmallValue {
-    pub fn mix_into(&self, channel: &mut impl Channel) {
+    pub fn mix_into(&self, channel: &mut Blake2sChannel) {
         channel.mix_u64(self.id as u64);
         channel.mix_u64(self.value as u64);
     }
@@ -297,7 +297,7 @@ impl SegmentRange {
         self.start_ptr.value == self.stop_ptr.value
     }
 
-    pub fn mix_into(&self, channel: &mut impl Channel) {
+    pub fn mix_into(&self, channel: &mut Blake2sChannel) {
         self.start_ptr.mix_into(channel);
         self.stop_ptr.mix_into(channel);
     }
@@ -350,7 +350,7 @@ impl PublicSegmentRanges {
             .map(|(addr, id, value)| (addr, id, [value, 0, 0, 0, 0, 0, 0, 0]))
     }
 
-    pub fn mix_into(&self, channel: &mut impl Channel) {
+    pub fn mix_into(&self, channel: &mut Blake2sChannel) {
         for segment in self.present_segments() {
             segment.mix_into(channel);
         }
@@ -421,7 +421,7 @@ impl PublicMemory {
             .chain(output_iter)
     }
 
-    pub fn mix_into(&self, channel: &mut impl Channel) {
+    pub fn mix_into(&self, channel: &mut Blake2sChannel) {
         let Self {
             program,
             public_segments,
@@ -517,7 +517,7 @@ pub struct CairoInteractionClaim {
     pub verify_bitwise_xor_9: verify_bitwise_xor_9::InteractionClaim,
 }
 impl CairoInteractionClaim {
-    pub fn mix_into(&self, channel: &mut impl Channel) {
+    pub fn mix_into(&self, channel: &mut Blake2sChannel) {
         self.opcodes.mix_into(channel);
         self.verify_instruction.mix_into(channel);
         self.blake_context.mix_into(channel);

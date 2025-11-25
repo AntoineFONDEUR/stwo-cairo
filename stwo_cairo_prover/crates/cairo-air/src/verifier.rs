@@ -10,11 +10,12 @@ use stwo_cairo_adapter::HashMap;
 use stwo_cairo_common::memory::LOG_MEMORY_ADDRESS_BOUND;
 use stwo_cairo_common::prover_types::cpu::{CasmState, PRIME};
 use stwo_prover::constraint_framework::PREPROCESSED_TRACE_IDX;
-use stwo_prover::core::channel::{Channel, MerkleChannel};
+use stwo_prover::core::channel::{Blake2sChannel, Channel};
 use stwo_prover::core::fields::m31::BaseField;
 use stwo_prover::core::fields::qm31::SecureField;
 use stwo_prover::core::pcs::{CommitmentSchemeVerifier, PcsConfig};
 use stwo_prover::core::prover::{verify, VerificationError};
+use stwo_prover::core::vcs::blake2_merkle::{Blake2sMerkleChannel, Blake2sMerkleHasher};
 use thiserror::Error;
 
 use crate::air::{
@@ -277,13 +278,13 @@ fn check_builtin(
 /// 1 << (24 + INTERACTION_POW_BITS) relation terms.
 pub const INTERACTION_POW_BITS: u32 = 24;
 
-pub fn verify_cairo<MC: MerkleChannel>(
+pub fn verify_cairo(
     CairoProof {
         claim,
         interaction_pow,
         interaction_claim,
         stark_proof,
-    }: CairoProof<MC::H>,
+    }: CairoProof<Blake2sMerkleHasher>,
     pcs_config: PcsConfig,
     preprocessed_trace: PreProcessedTraceVariant,
 ) -> Result<(), CairoVerificationError> {
@@ -296,9 +297,10 @@ pub fn verify_cairo<MC: MerkleChannel>(
 
     verify_claim(&claim);
 
-    let channel = &mut MC::C::default();
+    let channel = &mut Blake2sChannel::default();
     pcs_config.mix_into(channel);
-    let commitment_scheme_verifier = &mut CommitmentSchemeVerifier::<MC>::new(pcs_config);
+
+    let commitment_scheme_verifier = &mut CommitmentSchemeVerifier::new(pcs_config);
 
     let mut log_sizes = claim.log_sizes();
     log_sizes[PREPROCESSED_TRACE_IDX] = preprocessed_trace.to_preprocessed_trace().log_sizes();
@@ -311,6 +313,8 @@ pub fn verify_cairo<MC: MerkleChannel>(
 
     // Proof of work.
     channel.mix_u64(interaction_pow);
+    println!("digest: {:?}", &channel.digest().0);
+
     if channel.trailing_zeros() < INTERACTION_POW_BITS {
         return Err(CairoVerificationError::ProofOfWork);
     }
@@ -333,7 +337,7 @@ pub fn verify_cairo<MC: MerkleChannel>(
     let components = component_generator.components();
 
     // Verify stark.
-    verify(
+    verify::<Blake2sMerkleChannel>(
         &components,
         channel,
         commitment_scheme_verifier,
