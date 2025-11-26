@@ -1,5 +1,6 @@
 #![feature(array_chunks)]
 use starknet_ff::FieldElement;
+use std::collections::BTreeMap;
 // Make derive macro available.
 pub use stwo_cairo_serialize_derive::CairoSerialize;
 use stwo_prover::core::fields::m31::BaseField;
@@ -143,6 +144,7 @@ where
             queried_values,
             proof_of_work,
             fri_proof,
+            query_positions_per_log_size,
         } = self;
         config.serialize(output);
         commitments.serialize(output);
@@ -151,6 +153,7 @@ where
         queried_values.serialize(output);
         output.push((*proof_of_work).into());
         fri_proof.serialize(output);
+        query_positions_per_log_size.serialize(output);
     }
 }
 
@@ -192,6 +195,16 @@ impl<T: CairoSerialize, const N: usize> CairoSerialize for [T; N] {
 impl<T: CairoSerialize> CairoSerialize for Vec<T> {
     fn serialize(&self, output: &mut Vec<FieldElement>) {
         (**self).serialize(output);
+    }
+}
+
+impl<K: CairoSerialize, V: CairoSerialize> CairoSerialize for BTreeMap<K, V> {
+    fn serialize(&self, output: &mut Vec<FieldElement>) {
+        output.push(self.len().into());
+        for (key, value) in self {
+            key.serialize(output);
+            value.serialize(output);
+        }
     }
 }
 

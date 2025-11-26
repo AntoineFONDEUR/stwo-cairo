@@ -284,6 +284,7 @@ pub fn verify_cairo(
         interaction_pow,
         interaction_claim,
         stark_proof,
+        hints: _hints,
     }: CairoProof<Blake2sMerkleHasher>,
     pcs_config: PcsConfig,
     preprocessed_trace: PreProcessedTraceVariant,
@@ -313,7 +314,6 @@ pub fn verify_cairo(
 
     // Proof of work.
     channel.mix_u64(interaction_pow);
-    println!("digest: {:?}", &channel.digest().0);
 
     if channel.trailing_zeros() < INTERACTION_POW_BITS {
         return Err(CairoVerificationError::ProofOfWork);

@@ -1,6 +1,6 @@
 use cairo_air::air::{lookup_sum, CairoComponents, CairoInteractionElements};
 use cairo_air::verifier::INTERACTION_POW_BITS;
-use cairo_air::{CairoProof, PreProcessedTraceVariant};
+use cairo_air::{CairoProof, Hints, PreProcessedTraceVariant};
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 use stwo_cairo_adapter::ProverInput;
@@ -84,7 +84,7 @@ where
         SecureField::zero()
     );
 
-    // interaction_claim.mix_into(channel);
+    interaction_claim.mix_into(channel);
     tree_builder.commit(channel);
 
     // Component provers.
@@ -124,11 +124,16 @@ where
 
     event!(name: "component_info", Level::DEBUG, "Components: {}", component_builder);
 
+    let hints = Hints {
+        query_positions_by_log_size: proof.0.query_positions_per_log_size.clone(),
+    };
+
     Ok(CairoProof {
         claim,
         interaction_pow,
         interaction_claim,
         stark_proof: proof,
+        hints,
     })
 }
 
@@ -211,7 +216,7 @@ pub mod tests {
 
         // Read the proof file (JSON format)
         let proof_path = PathBuf::from(
-            "/Users/antoine/Documents/stwo-gnark-verifier/test_data/all_components_proof.json",
+            "/Users/antoine/Documents/stwo-gnark-verifier/test_data/all_components_proof_with_hints.json",
         );
         let proof_str = std::fs::read_to_string(&proof_path).expect("Failed to read proof file");
 

@@ -1,6 +1,7 @@
 use itertools::{chain, Itertools};
 use num_traits::Zero;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use stwo_cairo_adapter::HashMap;
 use stwo_cairo_common::prover_types::cpu::CasmState;
 use stwo_cairo_common::prover_types::felt::split_f252;
@@ -44,6 +45,12 @@ pub struct CairoProof<H: MerkleHasher> {
     pub interaction_pow: u64,
     pub interaction_claim: CairoInteractionClaim,
     pub stark_proof: StarkProof<H>,
+    pub hints: Hints,
+}
+
+#[derive(Serialize, Deserialize, CairoSerialize, Default)]
+pub struct Hints {
+    pub query_positions_by_log_size: BTreeMap<u32, Vec<usize>>,
 }
 
 impl<H: MerkleHasher> CairoSerialize for CairoProof<H>
@@ -56,11 +63,13 @@ where
             interaction_pow,
             interaction_claim,
             stark_proof,
+            hints,
         } = self;
         CairoSerialize::serialize(claim, output);
         CairoSerialize::serialize(interaction_pow, output);
         CairoSerialize::serialize(interaction_claim, output);
         CairoSerialize::serialize(stark_proof, output);
+        CairoSerialize::serialize(hints, output);
     }
 }
 

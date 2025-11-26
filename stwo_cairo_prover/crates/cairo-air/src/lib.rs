@@ -20,7 +20,7 @@ pub mod utils;
 // TODO(Ohad): verifier crate.
 pub mod verifier;
 
-pub use air::CairoProof;
+pub use air::{CairoProof, Hints};
 
 /// The preprocessed trace used for the prover.
 // TODO(Ohad): move somewhere else.
